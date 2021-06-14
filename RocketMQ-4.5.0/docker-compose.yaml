@@ -1,0 +1,62 @@
+version: '3'
+services:
+  #Service for nameserver
+  namesrv:
+    image: apacherocketmq/rocketmq:4.5.0
+    container_name: rmqnamesrv
+    network_mode: host
+#    ports:
+#      - 9876:9876
+    volumes: []
+#      - /opt/rocketmq/data/namesrv/logs:/home/rocketmq/logs
+    command: sh mqnamesrv
+
+  broker-master:
+    image: apacherocketmq/rocketmq:4.5.0
+    container_name: broker-master
+    network_mode: host
+#    links:
+#      - namesrv
+#    ports:
+#      - 10909:10909
+#      - 10911:10911
+#      - 10912:10912
+    environment:
+      - NAMESRV_ADDR= 192.168.100.11:9876
+    volumes:
+    #   - /opt/rocketmq/data/broker/logs:/home/rocketmq/logs
+    #   - /opt/rocketmq/data/broker/store:/home/rocketmq/store
+      - ./2m-2s-async/broker-a.properties:/home/rocketmq/rocketmq-4.5.0/conf/2m-2s-async/broker-a.properties
+    command: sh mqbroker -c /home/rocketmq/rocketmq-4.5.0/conf/2m-2s-async/broker-a.properties
+
+  #Service for another broker -- broker1
+  broker-slave:
+    image: apacherocketmq/rocketmq:4.5.0
+    container_name: broker-slave
+    network_mode: host
+#    links:
+#      - namesrv
+#    ports:
+#      - 10929:10909
+#      - 10931:10911
+#      - 10932:10912
+    environment:
+      - NAMESRV_ADDR= 192.168.100.11:9876
+    depends_on:
+      - broker-master
+    volumes:
+    #   - /opt/rocketmq/data1/broker/logs:/home/rocketmq/logs
+    #   - /opt/rocketmq/data1/broker/store:/home/rocketmq/store
+      - ./2m-2s-async/broker-b-s.properties:/home/rocketmq/rocketmq-4.5.0/conf/2m-2s-async/broker-b-s.properties
+    command: sh mqbroker -c /home/rocketmq/rocketmq-4.5.0/conf/2m-2s-async/broker-b-s.properties
+  rocketmq-console-ng:
+    container_name: rmqconsole
+    image: styletang/rocketmq-console-ng:latest
+    network_mode: host
+    depends_on:
+      - broker-master
+      - namesrv
+#    ports:
+#        - 8080:8080
+    environment:
+        NAMESRV_ADDR: "192.168.100.11:9876"
